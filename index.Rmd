@@ -1,0 +1,648 @@
+---
+title: "Los juegos olimpicos"
+subtitle: "Pau Piera Palacios(paupiepa@alumni.uv.es)" #- pongo tú nombre ahí para q aparezca más grande q el de la UV
+author: "Universitat de València"
+date: "Diciembre de 2021 (actualizado el `r format(Sys.time(), '%d-%m-%Y')`)"
+output:
+  html_document:
+    css: "./assets/estilo_1.css"
+    highlight: textmate 
+    toc: true
+    toc_depth: 3 
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+      number_sections: false
+      self_contained: true
+    code_download: true
+    code_folding: "hide"
+    theme: paper
+    df_print: kable
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r packages-setup, include = FALSE}
+library(tidyverse)
+library(klippy)  #- remotes::install_github("rlesur/klippy")
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(viridis)
+library(countrycode)
+library(highcharter)
+library(directlabels)
+library(plotly)
+library(DT)
+library(ggthemes)
+library(ggExtra)
+
+
+```
+
+```{r chunk-setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      #results = "hold",
+                      cache = FALSE, cache.path = "/caches/", comment = "#>",
+                      #fig.width = 7, #fig.height= 7,   
+                      #out.width = 7, out.height = 7,
+                      collapse = TRUE,  fig.show = "hold",
+                      fig.asp = 0.628, out.width = "75%", fig.align = "center")
+knitr::opts_chunk$set(dev = "png", dev.args = list(type = "cairo-png"))
+```
+
+
+```{r options-setup, include = FALSE}
+options(scipen = 999) #- para quitar la notación científica
+options("yaml.eval.expr" = TRUE) 
+```
+
+
+```{r klippy, echo = FALSE}
+klippy::klippy(position = c("top", "right")) #- remotes::install_github("rlesur/klippy")
+```
+
+
+<hr class="linea-black">
+
+<!-- El párrafo de abajo has de dejarlo casi igual, solo HAS de SUSTITUIR "perezp44" por tu usuario de Github-->
+Trabajo elaborado para la asignatura "Programación y manejo de datos en la era del Big Data" de la Universitat de València durante el curso 2021-2022. El repo del trabajo está [aquí](https://github.com/paupiera23/trabajo_BigData){target="_blank"}. 
+
+<!-- El párrafo de abajo has de dejarlo exactamente igual, NO HAS DE CAMBIAR NADA-->
+
+La página web de la asignatura y los trabajos de mis compañeros pueden verse [aquí](https://perezp44.github.io/intro-ds-21-22-web/07-trabajos.html){target="_blank"}.
+
+
+<hr class="linea-red">
+
+#  **Introducción**
+
+<center><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Olympic_rings_without_rims.svg/1200px-Olympic_rings_without_rims.svg.png" style="width: 600px;"/></center>
+
+  Los Juegos Olímpicos son los principales eventos deportivos internacionales que incluyen competiciones deportivas de verano e invierno en las que miles de atletas de todo el mundo participan en una variedad de competiciones. Los Juegos Olímpicos se consideran la competición deportiva más importante del mundo con la participación de más de 200 naciones, estos se celebran cada cuatro años, donde los Juegos de Verano y de Invierno se alternan cada cuatro años, pero con dos años de diferencia.
+  
+  
+  La evolución del Movimiento Olímpico durante los siglos XX y XXI ha dado lugar a varios cambios en los Juegos Olímpicos. Algunos de estos ajustes incluyen la creación de los Juegos Olímpicos de Invierno para deportes de nieve y hielo, los Juegos Paralímpicos para atletas con discapacidad, los Juegos Olímpicos de la Juventud para atletas de 14 a 18 años, los cinco Juegos Continentales (Panamericanos, Africanos, Asiáticos, Europa y el Pacífico) y los Juegos Mundiales de deportes que no se disputan en los Juegos Olímpicos. Los Deaflympics y Special Olympics también cuentan con el respaldo del COI. El COI ha tenido que adaptarse a una variedad de avances económicos, políticos y tecnológicos. Como resultado, los Juegos Olímpicos se han alejado del amateurismo puro, como lo imaginó Coubertin, para permitir la participación de atletas profesionales. La creciente importancia de los medios de comunicación generó el problema del patrocinio empresarial y la comercialización de los Juegos. Las guerras mundiales llevaron a la cancelación de los Juegos de 1916, 1940 y 1944. Los grandes boicots durante la Guerra Fría limitaron la participación en los Juegos de 1980 y 1984. Este último, sin embargo, atrajo a 140 Comités Olímpicos Nacionales, lo que fue un récord en ese momento.
+  
+Para obtener más información, consulte la [página oficial de los Juegos Olímpicos.](https://olympics.com/en/).
+
+#    **Datos** {.tabset}
+##  **Extracción de datos** 
+Este es un conjunto de datos históricos sobre los Juegos Olímpicos modernos, incluidos todos los Juegos desde Atenas 1896 hasta Río 2016. Estos datos los he extraido de [Kaggle](https://www.kaggle.com/), una base de datos donde se pueden encontrar una infinidad de dataframes con información muy valios, desde la carrera de Cristiano Ronaldo en números, hasta modelos de Value Investing para la valoración de muchas empresas cotizadas.
+
+Como estos datos pesan demasiado para ponerlos en el repositorio de Github, a continuación os dejo el **[enlace de descarga](https://www.kaggle.com/heesoo37/120-years-of-olympic-history-athletes-and-results/download)**
+
+## **Código**
+```{r eval=TRUE, warning=TRUE}
+#Vamos a cargar los df
+
+atheletes <- read.csv("./datos/athlete_events.csv", stringsAsFactors = F)
+regions <- read.csv("./datos/noc_regions.csv", stringsAsFactors = F)
+
+```
+
+
+# **Análisis por Sexo:**
+## Números aproximados: 
+La primera parte de nuestro análisis será útil para comprender cómo han evolucionado los Juegos Olímpicos a lo largo del tiempo.
+```{r eval= TRUE, warning=FALSE}
+df <- atheletes %>%
+  group_by(Season, Sex) %>%
+  summarise(Count = n()) %>%
+  mutate(Percentage = round(Count*100 / sum(Count))) 
+  
+df %>%   
+ggplot(aes(x=Season, y=Percentage, fill = Sex)) + geom_bar(stat='identity',position=position_dodge()) +
+        ggtitle("Porcentaje de Hombres y mujeres que participan(2007-2017)") +
+        geom_label(label=df$Percentage, position = position_dodge(0.9)) +
+        theme_minimal() 
+        
+```
+
+Durante el invierno y el verano el porcentaje y las mujeres se han mantenido iguales ya que apenas se puede observar una variación elevada.
+
+## Tendencia de participación:
+
+### Tendencia de participación por años:
+
+A medida que avanzaban los Juegos Olímpicos a lo largo de los años, el número de personas que participaban en ellos habría aumentado, lo que significaba que el número de hombres y mujeres que participaban en los Juegos Olímpicos crecía.
+
+```{r, eval = TRUE, warning=FALSE}
+
+p1 <- atheletes %>%
+  group_by(Year, Season) %>%
+  summarise(NumberOfParticipants = n()) %>%
+  ggplot(aes(x = Year, y = NumberOfParticipants, group = Season)) +
+  geom_line(aes(color = Season)) +
+  geom_point(aes(color = Season)) +
+  labs(x = "Año", y = "Número de participantes", title = "Número de participantes en las olimpiadas por año")+
+  theme_minimal()
+
+ggplotly(p1)
+
+```
+
+El número de participantes en los Juegos Olímpicos ha crecido con el paso del tiempo. También es obvio que el número de participantes en los juegos olímpicos de verano es mayor que el de los juegos olímpicos de invierno.
+
+
+### Tendencia por ratio de sexo:
+```{r, eval = TRUE, warning=FALSE}
+groupMale <- atheletes %>%
+              filter(Sex == "M") %>%
+              group_by(Year, Season) %>%
+              summarise(Number_Of_Men = n())
+
+groupFemale <- atheletes %>%
+              filter(Sex == "F") %>%
+              group_by(Year, Season) %>%
+              summarise(Number_Of_Women = n())
+
+group <- groupMale %>%
+          left_join(groupFemale) %>%
+          mutate(Sex_Ratio = Number_Of_Men/Number_Of_Women)
+
+group$Sex_Ratio[is.na(group$Sex_Ratio)] <- 175
+
+p1 <- group %>%
+    ggplot(aes(x = Year, y= Sex_Ratio, group = Season)) +
+    geom_line(aes(color = Season)) +
+    geom_point(aes(color = Season)) +
+    labs(x = "Año", y = "Ratio de sexo", title = "Ratio de sexo en las Olimpiadas por años") +
+    theme_minimal()
+
+p2 <- group %>%
+    filter(Year>1927) %>%
+    ggplot(aes(x = Year, y= Sex_Ratio, group = Season)) +
+    geom_line(aes(color = Season)) +
+    geom_point(aes(color = Season)) +
+    labs(x = "Año", y = "Ratio de sexo", title = "Ratio de sexo en las Olimpiadas después de 1927") +
+    theme_minimal()
+
+cowplot::plot_grid(p1,p2, ncol = 1, 
+          align = 'h', axis = 'l')
+
+```
+
+Cuando comenzaron los Juegos Olímpicos, ninguna mujer participó en los Juegos Olímpicos. En 1900 las mujeres comenzaron a participar en los Juegos Olímpicos. A medida que pasaron los años, la proporción de sexos, es decir, la proporción de hombres a mujeres se hizo más pequeña. Después de 2000, la proporción comenzó a moverse hacia 1, lo que significa que los Juegos Olímpicos ahora son más diversos de lo que solían ser.
+
+#  **Análisis por Edad:**
+
+La edad es algo que podría haber cambiado desde que comenzaron los Juegos Olímpicos.
+Hipótesis: Los participantes durante los Juegos Olímpicos de 1900 tenían una edad media mayor que la edad media de los participantes durante los 2000.
+
+## **Análisis de edad por densidad:** 
+
+Primero que todo vamos a quitar los NA's de nuestro df para poder calcular la media de edad, ya que si no en lugar de reportarnos la edad nos reportaria un NA *como una casa de grande.*
+```{r}
+atheletes$Age[is.na(atheletes$Age)] <- median(atheletes$Age, na.rm = T)
+```
+
+Ahora calcularemos la media de edad para el conjunto de atletas olimpicos y luego la media de edad por sexo
+
+La media de edad de los atletas en los juegos olimpicos es 24
+
+```{r, results='hold'}
+cat("La media de edad de los atletas en los juegos olimpicos es", median(atheletes$Age))
+```
+La media de edad de los hombres atletas en los juegos olimpicos es 25
+```{r}
+cat("La media de edad de los hombres atletas en los juegos olimpicos es", median(atheletes$Age[atheletes$Sex == "M"]))
+```
+La media de edad de las mujeres atletas en los juegos olimpicos es 23
+```{r}
+cat("La media de edad de las mujeres atletas en los juegos olimpicos es", median(atheletes$Age[atheletes$Sex == "F"]))
+```
+
+Como podemos observar de los analisis anteriores, la edad promedio de las atletas femeninas fue menor que la edad promedio de los atletas masculinos.
+
+```{r}
+# Sustituimos los NA's con la edad media obtenida.
+
+p1 <- atheletes %>%
+      ggplot(aes(x = Age)) +
+      geom_density(color = "black", fill = "tomato") +
+      labs(x = "Año", title = "Distribución de edad") +
+      theme_minimal()
+
+p2 <- atheletes %>%
+      ggplot(aes(x=Age, fill=Sex)) +
+      geom_density(alpha=0.4) +
+      labs(x = "Año", title = "Distribución de edad por Sexos") +
+      theme_minimal()
+
+cowplot::plot_grid(p1,p2, ncol = 1, 
+          align = 'h', axis = 'l')
+```
+
+## **Edad de los atletas por años:**
+
+```{r}
+atheletes %>%
+  group_by(Year, Sex) %>%
+  summarise(Median_Age = median(Age)) %>%
+  ggplot(aes(x = Year, y = Median_Age, Group = Sex)) +
+  geom_line(aes(color = Sex)) +
+  geom_point(aes(color = Sex)) + 
+  labs( x = "Year", y = "Medain age of Athletes", title = "Median age of Male and Female athletes over the years")+
+  theme_minimal()
+```
+
+La media de edad de los atletas masculinos y femeninos ha aumentado desde el 1980 tal y como podemos observar en el gráfico de arriba.
+
+# **Análisis por equipo:**
+
+Los equipos aquí se refieren a los países y los diferentes clubes atléticos que han participado en los Juegos Olímpicos a lo largo de los años.
+
+
+```{r}
+cat("El número total de equipos que han participado en las olimiadas es de ", length(unique(atheletes$Team)))
+```
+
+El número total de equipos que han participado en las olimiadas es de 1184
+
+```{r}
+#Ahora vamos a unir en un mismo df los atletas y su región de pertenencia
+atheletes <- atheletes %>%
+              left_join(regions, by = "NOC")
+```
+
+Con el código que esta oculto arriba, acabamos de unir el conjunto de datos de los atletas con el conjunto de datos de las regiones. Me gustaría analizar el conjunto de datos basado en el Comité Olímpico Nacional en lugar de los equipos.
+```{r}
+  cat("El número total de Comités Olímpicos Nacionales que han participado en las olimpiadas es de", length(unique(atheletes$region)))
+```
+
+"El número total de Comités Olímpicos Nacionales que han participado en las olimpiadas es de 206"
+
+
+A continuación vamos a representar un gráfico de barras donde observaremos cuales son los paises con más medallas ganadas de la historia.
+
+```{r}
+atheletes %>%
+  filter(Medal != "<NA>") %>%
+  group_by(region) %>%
+  summarise(Medal_Tally = length(Medal))%>%
+  arrange(desc(Medal_Tally)) %>%
+  ungroup() %>%
+  mutate(region = reorder(region,Medal_Tally)) %>%
+  top_n(10) %>%
+  ggplot(aes(x = region,y = Medal_Tally)) +
+    geom_bar(stat='identity',colour="white", fill = "tomato") +
+    geom_text(aes(x = region, y = .1, label = paste0("(",round(Medal_Tally,2),")",sep="")),
+              hjust=0, vjust=.5, size = 4, colour = 'black',
+              fontface = 'bold') +
+    theme(plot.title = element_text(size=10),
+          axis.title = element_text(size=10),
+          axis.text = element_text(size=10)) +
+    labs(x = 'País', 
+         y = 'Número de medallas'
+         ) +
+    coord_flip() + 
+    theme_bw()
+```
+
+Como podemos observar del gráfico que vemos arriba, los paises con más medallas ganadas son:
+
+- Estados Unidos con un total de 5637 medallas.
+- Rusia con un total de 3947 medallas.
+- Alemania con un total de 3756 medallas.
+- Reino Unido con un total de 2068 medallas.
+- Francia con un total de 1777 medallas.
+
+## Comparación del Top 4 de países:
+
+A continuación crearemos dos gráficos para observar que país ha conseguido más medallas por año y que país se ha llevado más medallas de oro por año:
+
+```{r}
+#Primero que todo creamos un df distinto para cada tipo de medalla para posteriormente unirlos en un solo df
+
+Gold <-  atheletes %>%
+                filter(Medal == "Gold")%>%
+                group_by(Year, Season, region) %>%
+                summarise(Gold = n())
+
+Silver <-  atheletes %>%
+                filter(Medal == "Silver")%>%
+                group_by(Year, Season, region) %>%
+                summarise(Silver = n())
+
+Bronze <-  atheletes %>%
+                filter(Medal == "Bronze")%>%
+                group_by(Year, Season, region) %>%
+                summarise(Bronze = n())
+
+Total <-  atheletes %>%
+                filter(Medal != "<NA>")%>%
+                group_by(Year, Season, region) %>%
+                summarise(Total = n())
+
+Total <- Total %>%
+  left_join(Gold) %>%
+  left_join(Silver) %>%
+  left_join(Bronze)
+
+#A continuación crearemos un par de tablas donde representemos el número total de medallas de cada país y el número de medallas de oro ganados durante nuestra serie temporal.
+
+Total$Gold[is.na(Total$Gold)] <- 0
+Total$Silver[is.na(Total$Silver)] <- 0
+Total$Bronze[is.na(Total$Bronze)] <- 0
+Total$Total[is.na(Total$Total)] <- 0
+
+Total <- Total %>%
+          filter(region %in% c("USA","Russia","Germany","France")) %>%
+          filter(Season == "Summer")
+
+p1 <- Total %>%
+  ggplot(aes(x = Year, y = Total, group = region)) +
+  geom_line(aes(color = region)) +
+  geom_point(aes(color = region)) +
+  theme_minimal()
+
+p2 <- Total %>%
+  ggplot(aes(x = Year, y = Gold, group = region)) +
+  geom_line(aes(color = region)) +
+  geom_point(aes(color = region)) +
+  theme_minimal()
+
+cowplot::plot_grid(p1,p2, ncol = 1, 
+          align = 'h', axis = 'l')
+
+
+
+```
+
+De los gráficos anteriores podemos extraer que Francia es de los 4 paises el que menos medallas en total y medallas de oro se ha llevado en los ultimos años. También podemos observar que desde que Rusia entró en los Juegos Olímpicos, arrasaba en todos los deportes hasta 1980 donde emepezó a decaer.
+
+
+También destacar que hasta día de hoy, Estados Unidos es el lider indiscutible.
+
+## Medallistas por paises
+
+```{r, eval = TRUE, warning=FALSE}
+
+Gold_Winners <- atheletes %>%
+                     filter(Medal == "Gold") %>%
+                     group_by(region) %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally))
+
+Silver_Winners <- atheletes %>%
+                     filter(Medal == "Silver") %>%
+                     group_by(region) %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally))
+
+Bronze_Winners <- atheletes %>%
+                     filter(Medal == "Bronze") %>%
+                     group_by(region) %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally))
+
+AllMedals <- atheletes %>%
+                     filter(Medal != "<NA>") %>% 
+                     group_by(region) %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally))
+
+All <- atheletes %>%
+                      group_by(region) %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally)) %>%
+                     filter(!region %in% AllMedals$region) %>%
+                     mutate(Medal_Tally = "No Medal")
+
+AllMedals$Medal_Tally <- "Medal Winners"
+
+Medal_Tally <- rbind(AllMedals, All)
+
+map.world <- map_data("world")
+
+
+AllSilver <- atheletes %>%
+                      group_by(region) %>%
+                      filter(Medal == "Silver") %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally)) %>%
+                     filter(!region %in% Gold_Winners$region) %>%
+                     mutate(Medal_Tally = "Silver")
+
+AllBronze <- atheletes %>%
+                      group_by(region) %>%
+                      filter(Medal == "Bronze") %>%
+                     summarise(Medal_Tally = length(Medal)) %>%
+                     arrange(desc(Medal_Tally)) %>% 
+                     mutate(region = str_trim(region),Medal_Tally = str_trim(Medal_Tally)) %>%
+                     filter(!(region %in% Gold_Winners$region & region %in% Silver_Winners$region) )%>%
+                     mutate(Medal_Tally = "Bronze")
+
+Gold_Winners$Medal_Tally <- "Gold"
+Gold_Winners <- Gold_Winners[1:99,]
+
+Medal_Tally <- rbind(Gold_Winners, AllSilver)
+Medal_Tally <- rbind(Medal_Tally, AllBronze)
+
+map.world <- map_data("world")
+
+#as.factor(medal_winners$region) %>% levels()
+
+map.world_joined <- left_join(map.world, Medal_Tally, by ='region')
+
+map.world_joined$Medal_Tally[is.na(map.world_joined$Medal_Tally)] <- "No Medal"
+
+ggplot() +
+  geom_polygon(data = map.world_joined, aes(x = long, y = lat, group = group, fill = Medal_Tally)) +
+  scale_fill_manual(values = c("#cd7f32", "#FFDF00",  "#ff6347", "#808080")) +
+  labs(x = " ", y = " ", title = 'Medal winners in the world') +
+  theme_minimal() +
+  theme(legend.position="bottom")
+
+```
+
+#  **Análisis más profundo**
+
+```{r}
+
+Count <- atheletes %>%
+  group_by(Year, Season, region) %>%
+  summarise(NumberOfAthltes = n())
+
+Gold_Winners <- atheletes %>%
+                filter(Medal != "<NA>")%>%
+                group_by(Year, Season, region) %>%
+                summarise(NumberOfMedals = n())
+
+Aggregated <- Count %>% left_join(Gold_Winners, by = c("Year", "Season", "region"))
+
+groupMale <- atheletes %>%
+              filter(Sex == "M") %>%
+              group_by(Year, Season, region) %>%
+              summarise(Number_Of_Men = n())
+
+groupFemale <- atheletes %>%
+              filter(Sex == "F") %>%
+              group_by(Year, Season, region) %>%
+              summarise(Number_Of_Women = n())
+
+group <- groupMale %>%
+          left_join(groupFemale) %>%
+          mutate(Sex_Ratio = Number_Of_Men/Number_Of_Women)
+
+group$Sex_Ratio[is.na(group$Sex_Ratio)] <- 236
+
+Aggregated <- Aggregated %>%
+              left_join(group, by = c("Year", "Season", "region"))
+
+AgeAgg <- atheletes %>%
+                group_by(Year, Season, region) %>%
+                summarise(MedianAge = median(Age, na.rm = T))
+
+HeightAgg <- atheletes %>%
+                group_by(Year, Season, region) %>%
+                summarise(MedianHeight = median(Height, na.rm = T))
+
+WeightAgg <- atheletes %>%
+                group_by(Year, Season, region) %>%
+                summarise(MedianWeight = median(Weight, na.rm = T))
+
+Aggregated <- Aggregated %>%
+              left_join(AgeAgg, by = c("Year", "Season", "region"))
+Aggregated <- Aggregated %>%
+              left_join(HeightAgg, by = c("Year", "Season", "region"))
+Aggregated <- Aggregated %>%
+              left_join(WeightAgg, by = c("Year", "Season", "region"))
+
+Aggregated$NumberOfMedals[is.na(Aggregated$NumberOfMedals)] <- 0
+Aggregated$Sex_Ratio[is.na(Aggregated$Sex_Ratio)] <- 0
+
+p7 <- Aggregated %>% 
+        ggplot(aes(x=NumberOfAthltes, y=NumberOfMedals)) +
+        geom_point(col="blue")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Number of Athletes", y = "Number of Medals")
+
+ggplotly(p7)
+
+```
+
+Tal y como podemos observar en este gráfico, a medida que se han ido ampliando las categorias de los Juegos Olímpicos  y han aumentado el número de atletas profesionales, también han aumentado el número de medallas repartidas aunque no tanto como lo ha hecho el número de atletas.
+
+```{r}
+
+p1 <- Aggregated %>% 
+        filter(!is.na(Number_Of_Women)) %>%
+        ggplot(aes(x=Number_Of_Women, y=NumberOfMedals)) +
+        geom_point(col="darkblue")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Number of Female Athletes", y = "Number of Medals")
+        
+p2 <- Aggregated %>% 
+        filter(!is.na(Number_Of_Men)) %>%
+        ggplot(aes(x=Number_Of_Men, y=NumberOfMedals)) +
+        geom_point(col="red")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Number of Male Athletes", y = "Number of Medals")
+
+cowplot::plot_grid(p1,p2, ncol = 1, 
+          align = 'h', axis = 'l')
+
+```
+
+El número de hombres y el número de mujeres atletas se correlacionan con el número de medallas ganadas por una nación, no obstante el número de mujeres deportistas tiene una correlación menor con el número de medallas ganadas que el número de deportistas masculinos. ¿Qué pasa con la proporción de hombres y mujeres, eso tiene un impacto en la cantidad de medallas ganadas? A continuación lo analizamos.
+
+## Ratio de Sexo
+
+```{r}
+
+p6 <- Aggregated %>% 
+        filter(!is.na(Sex_Ratio)) %>%
+        ggplot(aes(x=Sex_Ratio, y=NumberOfMedals)) +
+        geom_point(col="darkblue")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Sex Ratio", y = "Number of Medals")
+
+ggplotly(p6)
+
+
+```
+
+Entonces, la igualdad en el sexo no influye en la cantidad de medallas que gana un país. El contingente de una nación puede estar compuesto completamente por hombres y no importará. Pero, el problema aquí es que si el contingente está compuesto solo por hombres, entonces es bastante obvio que la nación perdería oportunidades de ganar medallas en atletismo femenino. No está de más tener una mezcla de hombres y mujeres en el país.
+
+## Edad Media
+
+```{r}
+
+p5 <- Aggregated %>% 
+        filter(!is.na(MedianAge)) %>%
+        ggplot(aes(x=MedianAge, y=NumberOfMedals)) +
+        geom_point(col="darkblue")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Median Age of the Contingent", y = "Number of Medals")
+
+ggplotly(p5)
+
+```
+
+Como podemos observar, la edad tampoco afecta la cantidad de medallas que gana un país, esto se debe a que la edad a la que se retiran los atletas profesionales en los distintos juegos difiere bastante.
+
+## Peso y Altura Media
+
+```{r}
+
+p1 <- Aggregated %>% 
+        filter(!is.na(MedianHeight)) %>%
+        ggplot(aes(x=MedianHeight, y=NumberOfMedals)) +
+        geom_point(col="steelblue")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Median Height of the Contingent", y = "Number of Medals")
+        
+p2 <- Aggregated %>% 
+        filter(!is.na(MedianWeight)) %>%
+        ggplot(aes(x=MedianWeight, y=NumberOfMedals)) +
+        geom_point(col="tomato")  + geom_smooth(method = "lm", se=TRUE, color="black", aes(group=1)) +
+        theme_minimal() +
+        labs(x = "Median Weight of the Contingent", y = "Number of Medals")
+
+cowplot::plot_grid(p1,p2, ncol = 1, 
+          align = 'h', axis = 'l')
+
+```
+
+Una vez más, la altura y el peso no influyen en el número de medallas que gana el país ya que el peso y altura óptimo de un atleta varia en función del juego en el que este participe, no puede pesar lo mismo un atleta que se dedica al atletismo en la prueba de 100m lisos que los atletas que se dedican a juegos más de fuerza como puede ser la halterofilia.
+
+
+
+# **Bibliografía**
+
+[Kaggle](https://www.kaggle.com/)
+
+
+[Página oficial de los Juegos Olímpicos](https://olympics.com/en/)
+
+
+[Ggplot](https://rpubs.com/daniballari/ggplot)
+
+
+<br><br>
+
+<hr class="linea-red">
+<hr class="linea-red">
+
+
+```{r, echo = FALSE}
+sessioninfo::session_info() %>% details::details(summary = 'Información de mi R-sesión:') 
+```
+
+
+<br><br>
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>
+<br><br>
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>
