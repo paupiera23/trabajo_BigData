@@ -1,5 +1,5 @@
 ---
-title: "Los juegos olimpicos"
+title: "Los Juegos Olímpicos"
 subtitle: "Pau Piera Palacios(paupiepa@alumni.uv.es)" #- pongo tú nombre ahí para q aparezca más grande q el de la UV
 author: "Universitat de València"
 date: "Diciembre de 2021 (actualizado el `r format(Sys.time(), '%d-%m-%Y')`)"
